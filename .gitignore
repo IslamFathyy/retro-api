@@ -1,0 +1,5 @@
+node_modules/
+.env
+data/retrospectives/*/
+!data/retrospectives/.gitkeep
+*.log

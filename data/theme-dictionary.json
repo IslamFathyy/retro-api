@@ -1,0 +1,7 @@
+{
+  "code-review": ["code review", "pull request", "pr review", "review delay"],
+  "testing": ["test", "testing", "regression", "qa"],
+  "deployment": ["deploy", "deployment", "release", "pipeline"],
+  "requirements": ["requirement", "acceptance criteria", "scope", "refinement"],
+  "communication": ["communication", "meeting", "handoff", "alignment"]
+}
