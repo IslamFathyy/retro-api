@@ -7,11 +7,12 @@ import {
   readRetroMeta,
   writeAnalysis,
 } from './file-storage.service.js';
-import { closeRetrospective, getRetrospective, markAnalyzed } from './retrospective.service.js';
+import { getRetrospective, markAnalyzed } from './retrospective.service.js';
 import { nextSuggestionId } from './id.service.js';
 import { readJsonFile } from '../utils/json.js';
 import { badRequest, notFound } from '../utils/errors.js';
 import { nowIso } from '../utils/dates.js';
+import { validateAiAnalysisPayload } from '../validators/analysis.validator.js';
 
 function normalize(text) {
   return text.toLowerCase().replace(/\s+/g, ' ');
@@ -43,17 +44,77 @@ function matchThemes(feedbackItems, dictionary) {
   return themes;
 }
 
+function assertAnalysisAllowed(retro) {
+  if (!['closed', 'analyzed', 'actioned', 'archived'].includes(retro.status)) {
+    throw badRequest('Analysis requires retrospective to be closed or later');
+  }
+}
+
+async function persistAnalysis(retroId, retro, analysis) {
+  await writeAnalysis(retroId, analysis);
+  await appendAudit(retroId, 'analysis.generated', { generatedBy: analysis.generatedBy });
+  if (retro.status === 'closed') {
+    await markAnalyzed(retroId);
+  }
+  return analysis;
+}
+
 export async function getAnalysis(retroId) {
   await getRetrospective(retroId);
   return readAnalysis(retroId);
 }
 
+/**
+ * Import analysis produced by Cursor agent (no external LLM API).
+ */
+export async function importCursorAnalysis(retroId, payload) {
+  const retro = await readRetroMeta(retroId);
+  if (!retro) throw notFound('Retrospective not found');
+  assertAnalysisAllowed(retro);
+
+  const feedbackItems = await readFeedbackItems(retroId);
+  if (!feedbackItems.length) {
+    throw badRequest('Add feedback before importing analysis.');
+  }
+
+  const validationErrors = validateAiAnalysisPayload(
+    payload,
+    feedbackItems.map((item) => item.id)
+  );
+  if (validationErrors.length) {
+    throw badRequest(`Analysis validation failed: ${validationErrors.join(' ')}`);
+  }
+
+  const analysis = {
+    retroId,
+    version: 1,
+    generatedAt: nowIso(),
+    generatedBy: payload.generatedBy || 'cursor-agent',
+    feedbackCount: feedbackItems.length,
+    themes: payload.themes.map((theme) => ({
+      ...theme,
+      topicId: theme.topicId || null,
+    })),
+    strengths: payload.strengths,
+    concerns: payload.concerns,
+    opportunities: payload.opportunities,
+    suggestedActions: payload.suggestedActions.map((action, index) => ({
+      id: action.id || nextSuggestionId(index),
+      title: action.title,
+      reason: action.reason,
+      sourceFeedbackIds: action.sourceFeedbackIds,
+      ownerTeams: [...new Set(action.ownerTeams || [])],
+    })),
+    limitations: payload.limitations,
+  };
+
+  return persistAnalysis(retroId, retro, analysis);
+}
+
 export async function generateBaselineAnalysis(retroId) {
   const retro = await readRetroMeta(retroId);
   if (!retro) throw notFound('Retrospective not found');
-  if (!['closed', 'analyzed', 'actioned', 'archived'].includes(retro.status)) {
-    throw badRequest('Analysis requires retrospective to be closed or later');
-  }
+  assertAnalysisAllowed(retro);
 
   const feedbackItems = await readFeedbackItems(retroId);
   const dictionary = await loadThemeDictionary();
@@ -76,6 +137,7 @@ export async function generateBaselineAnalysis(retroId) {
     title: `Address recurring theme: ${theme.name}`,
     reason: theme.summary,
     sourceFeedbackIds: theme.feedbackIds,
+    ownerTeams: ['dev-team'],
   }));
 
   const analysis = {
@@ -91,24 +153,18 @@ export async function generateBaselineAnalysis(retroId) {
     suggestedActions,
     limitations: [
       'Generated suggestions require human review.',
-      'This baseline uses keyword matching only — not advanced AI.',
+      'Offline baseline for tests only — use /analyze-retro in Cursor for AI analysis.',
     ],
   };
 
-  await writeAnalysis(retroId, analysis);
-  await appendAudit(retroId, 'analysis.generated', { generatedBy: analysis.generatedBy });
-  if (retro.status === 'closed') {
-    await markAnalyzed(retroId);
-  }
-  return analysis;
+  return persistAnalysis(retroId, retro, analysis);
 }
 
 export async function getHistoricalComparison() {
   const retros = [];
-  const entries = await fs.readdir(
-    (await import('../config/paths.js')).RETROSPECTIVES_DIR,
-    { withFileTypes: true }
-  ).catch(() => []);
+  const entries = await fs
+    .readdir((await import('../config/paths.js')).RETROSPECTIVES_DIR, { withFileTypes: true })
+    .catch(() => []);
 
   for (const entry of entries.filter((e) => e.isDirectory())) {
     const retro = await readRetroMeta(entry.name);
@@ -120,16 +176,35 @@ export async function getHistoricalComparison() {
 
   retros.sort((a, b) => a.retro.createdAt.localeCompare(b.retro.createdAt));
 
-  const themeCounts = {};
-  for (const { analysis } of retros) {
+  const { readReportInsights } = await import('./file-storage.service.js');
+
+  const recurringByLabel = new Map();
+  for (const { retro, analysis } of retros) {
+    const insights = await readReportInsights(retro.id);
+    if (insights?.recurringTopics?.length) {
+      for (const topic of insights.recurringTopics) {
+        if (!recurringByLabel.has(topic.label)) {
+          recurringByLabel.set(topic.label, { name: topic.label, retrospectiveCount: 0, retroIds: new Set() });
+        }
+        const entry = recurringByLabel.get(topic.label);
+        for (const rid of topic.retroIds || []) entry.retroIds.add(rid);
+        entry.retrospectiveCount = entry.retroIds.size;
+      }
+      continue;
+    }
     for (const theme of analysis?.themes || []) {
-      themeCounts[theme.name] = (themeCounts[theme.name] || 0) + 1;
+      if (!recurringByLabel.has(theme.name)) {
+        recurringByLabel.set(theme.name, { name: theme.name, retrospectiveCount: 0, retroIds: new Set() });
+      }
+      recurringByLabel.get(theme.name).retroIds.add(retro.id);
+      recurringByLabel.get(theme.name).retrospectiveCount =
+        recurringByLabel.get(theme.name).retroIds.size;
     }
   }
 
-  const recurringThemes = Object.entries(themeCounts)
-    .filter(([, count]) => count >= 2)
-    .map(([name, count]) => ({ name, retrospectiveCount: count }));
+  const recurringThemes = [...recurringByLabel.values()]
+    .map(({ name, retrospectiveCount }) => ({ name, retrospectiveCount }))
+    .filter((t) => t.retrospectiveCount >= 2);
 
   let totalActions = 0;
   let completedActions = 0;

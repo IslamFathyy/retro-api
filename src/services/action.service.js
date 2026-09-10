@@ -11,25 +11,46 @@ import {
 } from './retrospective.service.js';
 import { nextActionId } from './id.service.js';
 import { validateAction } from '../validators/action.validator.js';
+import {
+  validateExplicitApproval,
+  validateNoBlameLanguage,
+} from '../validators/guardrails.validator.js';
+import { formatOwnerTeamLabels } from '../config/action-teams.js';
 import { badRequest, notFound } from '../utils/errors.js';
 import { nowIso, todayDate } from '../utils/dates.js';
+
+function normalizeOwnerTeams(body, fallback = []) {
+  if (Array.isArray(body.ownerTeams)) {
+    return [...new Set(body.ownerTeams)];
+  }
+  return fallback;
+}
 
 export async function listActions(retroId) {
   await getRetrospective(retroId);
   return readActionsDoc(retroId);
 }
 
+function validateActionGuardrails(body) {
+  return validateNoBlameLanguage({
+    title: body.title,
+    description: body.description,
+  });
+}
+
 export async function createAction(retroId, body) {
   await assertEditable(retroId);
-  const errors = validateAction(body);
+  const errors = [...validateAction(body), ...validateActionGuardrails(body)];
   if (errors.length) throw badRequest(errors.join('; '));
 
   const doc = await readActionsDoc(retroId);
+  const ownerTeams = normalizeOwnerTeams(body);
   const action = {
     id: nextActionId(doc.actions),
     title: body.title.trim(),
     description: body.description?.trim() || '',
-    owner: body.owner?.trim() || 'Team',
+    ownerTeams,
+    owner: formatOwnerTeamLabels(ownerTeams),
     targetDate: body.targetDate || todayDate(),
     status: body.status || 'open',
     source: body.source || 'manual',
@@ -46,7 +67,13 @@ export async function createAction(retroId, body) {
 
 export async function updateAction(retroId, actionId, body) {
   await assertEditable(retroId);
-  const errors = validateAction(body, true);
+  const errors = [
+    ...validateAction(body, true),
+    ...validateNoBlameLanguage({
+      title: body.title,
+      description: body.description,
+    }),
+  ];
   if (errors.length) throw badRequest(errors.join('; '));
 
   const doc = await readActionsDoc(retroId);
@@ -54,11 +81,15 @@ export async function updateAction(retroId, actionId, body) {
   if (index === -1) throw notFound('Action not found');
 
   const current = doc.actions[index];
+  const ownerTeams = body.ownerTeams !== undefined
+    ? normalizeOwnerTeams(body)
+    : (current.ownerTeams || []);
   doc.actions[index] = {
     ...current,
     title: body.title?.trim() || current.title,
     description: body.description?.trim() ?? current.description,
-    owner: body.owner?.trim() || current.owner,
+    ownerTeams,
+    owner: formatOwnerTeamLabels(ownerTeams),
     targetDate: body.targetDate || current.targetDate,
     status: body.status || current.status,
     updatedAt: nowIso(),
@@ -68,7 +99,7 @@ export async function updateAction(retroId, actionId, body) {
   return doc.actions[index];
 }
 
-export async function createActionFromSuggestion(retroId, suggestionId) {
+export async function createActionFromSuggestion(retroId, suggestionId, body = {}) {
   await assertEditable(retroId);
   const analysis = await readAnalysis(retroId);
   if (!analysis) throw badRequest('Generate analysis before approving suggestions');
@@ -76,10 +107,26 @@ export async function createActionFromSuggestion(retroId, suggestionId) {
   const suggestion = analysis.suggestedActions.find((s) => s.id === suggestionId);
   if (!suggestion) throw notFound('Suggestion not found');
 
+  const ownerTeams = suggestion.ownerTeams || [];
+  if (!ownerTeams.length) {
+    throw badRequest(
+      `Suggestion ${suggestionId} has no ownerTeams. Re-import analysis with team ids from config/action-teams.json.`
+    );
+  }
+
+  const approvalErrors = validateExplicitApproval(suggestionId, body);
+  if (approvalErrors.length) throw badRequest(approvalErrors.join('; '));
+
+  const blameErrors = validateNoBlameLanguage({
+    title: suggestion.title,
+    description: suggestion.reason,
+  });
+  if (blameErrors.length) throw badRequest(blameErrors.join('; '));
+
   return createAction(retroId, {
     title: suggestion.title,
     description: suggestion.reason,
-    owner: 'Team',
+    ownerTeams,
     targetDate: todayDate(),
     status: 'open',
     source: 'approved-suggestion',

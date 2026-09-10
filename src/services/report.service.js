@@ -10,8 +10,18 @@ import {
 import { getRetrospective } from './retrospective.service.js';
 import { getOpenActionsFromPrevious } from './action.service.js';
 import { getHistoricalComparison } from './analysis.service.js';
+import { formatInsightsMarkdown } from './report-insights.service.js';
+import { readReportInsights } from './file-storage.service.js';
+import { formatOwnerTeamLabels } from '../config/action-teams.js';
 import { badRequest } from '../utils/errors.js';
 import { nowIso } from '../utils/dates.js';
+
+function actionTeamsLine(action) {
+  if (action.ownerTeams?.length) {
+    return formatOwnerTeamLabels(action.ownerTeams);
+  }
+  return action.owner || 'Unassigned';
+}
 
 function countByType(feedback) {
   return {
@@ -39,13 +49,20 @@ export async function generateReport(retroId) {
   const feedback = await readFeedbackItems(retroId);
   const analysis = await readAnalysis(retroId);
   const actionsDoc = await readActionsDoc(retroId);
-  const counts = countByType(feedback);
-  const previousOpen = await getOpenActionsFromPrevious();
-  const comparison = await getHistoricalComparison();
 
   const approvedActions = actionsDoc.actions.filter(
     (a) => a.source === 'approved-suggestion' || a.source === 'manual'
   );
+  if (!approvedActions.length) {
+    throw badRequest(
+      'Approve at least one suggested action before generating the report.'
+    );
+  }
+  const counts = countByType(feedback);
+  const previousOpen = await getOpenActionsFromPrevious();
+  const comparison = await getHistoricalComparison();
+  const insights = await readReportInsights(retroId);
+  const insightsSection = formatInsightsMarkdown(insights);
 
   const md = `# ${retro.title} Report
 
@@ -61,6 +78,7 @@ export async function generateReport(retroId) {
 - Did not go well: ${counts.didNotGoWell}
 - Improvement ideas: ${counts.improvement}
 
+${insightsSection}
 ## What Went Well
 ${formatFeedbackSection(feedback.filter((f) => f.type === 'went-well'))}
 
@@ -81,7 +99,7 @@ ${analysis?.opportunities?.length
 
 ## Approved Actions
 ${approvedActions.length
-    ? approvedActions.map((a) => `- **${a.title}** (${a.id}) — Owner: ${a.owner}, Status: ${a.status}`).join('\n')
+    ? approvedActions.map((a) => `- **${a.title}** (${a.id}) — Teams: ${actionTeamsLine(a)}, Status: ${a.status}`).join('\n')
     : '_No approved actions yet._'}
 
 ## Previous Actions Follow-up

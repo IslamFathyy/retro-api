@@ -1,8 +1,10 @@
+import { listActionTeams } from '../config/action-teams.js';
 import * as retrospectiveService from '../services/retrospective.service.js';
 import * as feedbackService from '../services/feedback.service.js';
 import * as analysisService from '../services/analysis.service.js';
 import * as actionService from '../services/action.service.js';
 import * as reportService from '../services/report.service.js';
+import * as reportInsightsService from '../services/report-insights.service.js';
 import { AppError } from '../utils/errors.js';
 
 function handle(fn) {
@@ -19,6 +21,10 @@ function handle(fn) {
 export const health = (_req, res) => {
   res.json({ status: 'ok', service: 'retro-api' });
 };
+
+export const getActionTeams = handle(async () => ({
+  teams: listActionTeams(),
+}));
 
 export const listRetrospectives = handle(async () =>
   retrospectiveService.listRetrospectives()
@@ -62,7 +68,11 @@ export const getAnalysis = handle(async (req) => {
   return analysis;
 });
 
-export const generateAnalysis = handle(async (req) =>
+export const importAnalysis = handle(async (req) =>
+  analysisService.importCursorAnalysis(req.params.retroId, req.body)
+);
+
+export const generateBaselineAnalysis = handle(async (req) =>
   analysisService.generateBaselineAnalysis(req.params.retroId)
 );
 
@@ -83,7 +93,11 @@ export const updateAction = handle(async (req) =>
 );
 
 export const createFromSuggestion = handle(async (req) =>
-  actionService.createActionFromSuggestion(req.params.retroId, req.params.suggestionId)
+  actionService.createActionFromSuggestion(
+    req.params.retroId,
+    req.params.suggestionId,
+    req.body
+  )
 );
 
 export const getOpenActions = handle(async () =>
@@ -100,3 +114,11 @@ export const generateReport = handle(async (req) => {
   const markdown = await reportService.generateReport(req.params.retroId);
   return { markdown };
 });
+
+export const importReportInsights = handle(async (req) =>
+  reportInsightsService.importCursorReportInsights(req.params.retroId, req.body)
+);
+
+export const getReportInsights = handle(async (req) =>
+  reportInsightsService.getReportInsights(req.params.retroId)
+);

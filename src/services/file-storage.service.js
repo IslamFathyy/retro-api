@@ -33,6 +33,7 @@ export function retroPaths(retroId) {
     analysis: path.join(dir, 'analysis.json'),
     actions: path.join(dir, 'actions.json'),
     report: path.join(dir, 'report.md'),
+    reportInsights: path.join(dir, 'report-insights.json'),
     audit: path.join(dir, 'audit.jsonl'),
   };
 }
@@ -113,6 +114,17 @@ export async function readReport(retroId) {
 export async function writeReport(retroId, markdown) {
   const paths = retroPaths(retroId);
   await writeTextAtomic(paths.report, markdown);
+}
+
+export async function readReportInsights(retroId) {
+  const { reportInsights } = retroPaths(retroId);
+  if (!(await fileExists(reportInsights))) return null;
+  return readJsonFile(reportInsights);
+}
+
+export async function writeReportInsights(retroId, insights) {
+  const paths = retroPaths(retroId);
+  await writeJsonAtomic(paths.reportInsights, insights);
 }
 
 export async function appendAudit(retroId, event, details = {}) {

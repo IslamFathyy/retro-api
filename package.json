@@ -10,7 +10,10 @@
     "verify": "npm test",
     "seed:demo": "node scripts/seed-demo-retros.js",
     "retro:status": "node scripts/list-retro-state.js",
-    "export:reminder": "node scripts/export-reminder-snapshot.js"
+    "export:reminder": "node scripts/export-reminder-snapshot.js",
+    "reset:demo": "node scripts/reset-demo-data.js",
+    "repair:action-teams": "node scripts/repair-action-teams.js",
+    "backfill:insights": "node scripts/backfill-report-insights.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

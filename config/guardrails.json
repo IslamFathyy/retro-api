@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "close": {
+    "minFeedbackCount": 3
+  },
+  "approval": {
+    "requireExplicitConfirmation": true,
+    "confirmationPrefix": "approve"
+  },
+  "actions": {
+    "blamePatterns": [
+      "\\bfault\\b",
+      "\\bblame\\b",
+      "\\bunderperform",
+      "\\bperformance issue with\\b",
+      "\\bshould be fired\\b",
+      "\\bwritten warning\\b",
+      "\\bpoor performance\\b",
+      "\\bnot pulling their weight\\b"
+    ]
+  }
+}

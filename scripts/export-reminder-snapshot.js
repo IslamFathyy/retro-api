@@ -14,10 +14,12 @@ import {
   listRetroIds,
   readActionsDoc,
   readAnalysis,
+  readReportInsights,
   readRetroMeta,
   retroPaths,
 } from '../src/services/file-storage.service.js';
-import { generateReport } from '../src/services/report.service.js';
+import { formatOwnerTeamLabels } from '../src/config/action-teams.js';
+import { fileExists } from '../src/utils/json.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ORCHESTRATION_ROOT = path.resolve(__dirname, '..', '..');
@@ -47,11 +49,39 @@ function buildThemesSummary(analysis) {
   return analysis.themes.map((t) => `${t.name}: ${t.summary}`).join(' ');
 }
 
+function buildInsightsExcerpt(insights) {
+  if (!insights) return null;
+  return {
+    participationMix: insights.participationMix,
+    topicBreakdown: (insights.topicBreakdown || []).map((t) => ({
+      label: t.label,
+      feedbackItems: t.feedbackItems,
+      percent: t.percent,
+      priority: t.priority,
+      summary: t.summary,
+    })),
+    recurringTopics: (insights.recurringTopics || []).map((t) => ({
+      label: t.label,
+      retrosSeen: t.retrosSeen,
+      retrosTotal: t.retrosTotal,
+      priority: t.priority,
+      summary: t.summary,
+    })),
+    limitations: insights.limitations || [],
+  };
+}
+
 async function buildSnapshot(retroId) {
-  await generateReport(retroId);
+  const paths = retroPaths(retroId);
+  if (!(await fileExists(paths.report))) {
+    throw new Error(
+      `report.md missing for ${retroId}. Run /generate-report with human approval first.`
+    );
+  }
 
   const retro = await readRetroMeta(retroId);
   const analysis = await readAnalysis(retroId);
+  const insights = await readReportInsights(retroId);
   const actionsDoc = await readActionsDoc(retroId);
   const reportMd = await fs.readFile(retroPaths(retroId).report, 'utf8');
 
@@ -71,7 +101,8 @@ async function buildSnapshot(retroId) {
       id: a.id,
       title: a.title,
       description: a.description,
-      owner: a.owner,
+      ownerTeams: a.ownerTeams || [],
+      teams: a.ownerTeams?.length ? formatOwnerTeamLabels(a.ownerTeams) : (a.owner || 'Unassigned'),
       status: a.status,
       targetDate: a.targetDate || null,
     })),
@@ -79,6 +110,7 @@ async function buildSnapshot(retroId) {
       themesSummary: buildThemesSummary(analysis),
       approvedActionsSection: extractApprovedActionsSection(reportMd),
     },
+    reportInsights: buildInsightsExcerpt(insights),
   };
 }
 

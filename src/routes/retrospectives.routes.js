@@ -4,6 +4,7 @@ import * as c from '../controllers/retrospectives.controller.js';
 const router = Router();
 
 router.get('/health', c.health);
+router.get('/action-teams', c.getActionTeams);
 router.get('/dashboard', c.dashboard);
 router.get('/comparison', c.getComparison);
 router.get('/actions/open', c.getOpenActions);
@@ -19,7 +20,8 @@ router.get('/retrospectives/:retroId/feedback', c.listFeedback);
 router.post('/retrospectives/:retroId/feedback', c.submitFeedback);
 
 router.get('/retrospectives/:retroId/analysis', c.getAnalysis);
-router.post('/retrospectives/:retroId/analysis/generate', c.generateAnalysis);
+router.post('/retrospectives/:retroId/analysis/import', c.importAnalysis);
+router.post('/retrospectives/:retroId/analysis/generate/baseline', c.generateBaselineAnalysis);
 
 router.get('/retrospectives/:retroId/actions', c.listActions);
 router.post('/retrospectives/:retroId/actions', c.createAction);
@@ -27,6 +29,8 @@ router.put('/retrospectives/:retroId/actions/:actionId', c.updateAction);
 router.post('/retrospectives/:retroId/actions/from-suggestion/:suggestionId', c.createFromSuggestion);
 
 router.get('/retrospectives/:retroId/report', c.getReport);
+router.get('/retrospectives/:retroId/report/insights', c.getReportInsights);
+router.post('/retrospectives/:retroId/report/insights/import', c.importReportInsights);
 router.post('/retrospectives/:retroId/report/generate', c.generateReport);
 
 export default router;

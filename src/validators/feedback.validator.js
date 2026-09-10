@@ -32,12 +32,19 @@ export function validateFeedback(body, retroStatus) {
   return errors;
 }
 
+import { validateOwnerTeams } from './action-teams.validator.js';
+
 export function validateAction(body, isUpdate = false) {
   const errors = [];
   const statuses = ['open', 'in-progress', 'done', 'cancelled'];
   if (!isUpdate && !body.title?.trim()) errors.push('title is required');
   if (body.status && !statuses.includes(body.status)) {
     errors.push('invalid status');
+  }
+  if (!isUpdate) {
+    errors.push(...validateOwnerTeams(body.ownerTeams, { required: true }));
+  } else if (body.ownerTeams !== undefined) {
+    errors.push(...validateOwnerTeams(body.ownerTeams, { required: true }));
   }
   return errors;
 }

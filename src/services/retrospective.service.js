@@ -12,6 +12,7 @@ import {
   nextRetroId,
 } from './id.service.js';
 import { validateCreateRetro } from '../validators/retrospective.validator.js';
+import { validateMinFeedbackToClose } from '../validators/guardrails.validator.js';
 import { badRequest, notFound } from '../utils/errors.js';
 import { nowIso } from '../utils/dates.js';
 
@@ -85,6 +86,9 @@ export async function openRetrospective(retroId) {
 }
 
 export async function closeRetrospective(retroId) {
+  const feedback = await readFeedbackItems(retroId);
+  const closeErrors = validateMinFeedbackToClose(feedback.length);
+  if (closeErrors.length) throw badRequest(closeErrors.join('; '));
   return updateStatus(retroId, 'closed', 'retro.closed');
 }
 
@@ -116,6 +120,23 @@ export async function archiveRetrospective(retroId) {
   if (!['actioned', 'analyzed'].includes(retro.status)) {
     throw badRequest('Retrospective should be analyzed or actioned before archive');
   }
+
+  const { readReport } = await import('./file-storage.service.js');
+  const report = await readReport(retroId);
+  if (!report?.trim()) {
+    throw badRequest(
+      'Generate and approve the report before archiving (report.md is missing).'
+    );
+  }
+
+  const actionsDoc = await readActionsDoc(retroId);
+  const approved = actionsDoc.actions.filter(
+    (a) => a.source === 'approved-suggestion' || a.source === 'manual'
+  );
+  if (!approved.length) {
+    throw badRequest('Approve at least one action before archiving.');
+  }
+
   return updateStatus(retroId, 'archived', 'retro.archived');
 }
 

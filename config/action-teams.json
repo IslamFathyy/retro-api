@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "teams": [
+    { "id": "dev-team", "label": "Dev Team" },
+    { "id": "qa-team", "label": "QA Team" },
+    { "id": "product-team", "label": "Product Team" },
+    { "id": "ops-team", "label": "Ops Team" },
+    { "id": "management-team", "label": "Management Team" }
+  ]
+}
