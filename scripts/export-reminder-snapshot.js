@@ -24,6 +24,13 @@ import { fileExists } from '../src/utils/json.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ORCHESTRATION_ROOT = path.resolve(__dirname, '..', '..');
 const OUTPUT_PATH = path.join(ORCHESTRATION_ROOT, 'docs', 'reminders', 'latest-reminder.json');
+const RECIPIENTS_PATH = path.join(ORCHESTRATION_ROOT, 'docs', 'reminders', 'recipients.json');
+const RECIPIENTS_EXAMPLE_PATH = path.join(
+  ORCHESTRATION_ROOT,
+  'docs',
+  'reminders',
+  'recipients.example.json'
+);
 
 function pickLatestArchived(retros) {
   const archived = retros.filter((r) => r.status === 'archived');
@@ -49,6 +56,25 @@ function buildThemesSummary(analysis) {
   return analysis.themes.map((t) => `${t.name}: ${t.summary}`).join(' ');
 }
 
+async function readRecipientsConfig() {
+  const candidates = [RECIPIENTS_PATH, RECIPIENTS_EXAMPLE_PATH];
+  for (const filePath of candidates) {
+    if (!(await fileExists(filePath))) continue;
+    const raw = await fs.readFile(filePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    const to = (parsed.to || []).filter((email) => /@/.test(String(email)));
+    if (to.length) {
+      return {
+        to,
+        subjectPrefix: parsed.subjectPrefix || '[Retro Lab]',
+      };
+    }
+  }
+  throw new Error(
+    'No valid email recipients in docs/reminders/recipients.json (or recipients.example.json).'
+  );
+}
+
 function buildInsightsExcerpt(insights) {
   if (!insights) return null;
   return {
@@ -71,7 +97,7 @@ function buildInsightsExcerpt(insights) {
   };
 }
 
-async function buildSnapshot(retroId) {
+async function buildSnapshot(retroId, recipients) {
   const paths = retroPaths(retroId);
   if (!(await fileExists(paths.report))) {
     throw new Error(
@@ -111,6 +137,7 @@ async function buildSnapshot(retroId) {
       approvedActionsSection: extractApprovedActionsSection(reportMd),
     },
     reportInsights: buildInsightsExcerpt(insights),
+    recipients,
   };
 }
 
@@ -142,7 +169,8 @@ async function main() {
     }
   }
 
-  const snapshot = await buildSnapshot(retroId);
+  const recipients = await readRecipientsConfig();
+  const snapshot = await buildSnapshot(retroId, recipients);
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
   await fs.writeFile(OUTPUT_PATH, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
 
