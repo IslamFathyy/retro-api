@@ -1,0 +1,13 @@
+---
+description: Test requirements for API changes
+globs: src/**,tests/**
+alwaysApply: false
+---
+
+# Testing Rules
+
+- Bug fix → add or extend a regression test in `tests/`.
+- New validator or service behavior → unit test.
+- New or changed route → integration test under `tests/integration/`.
+- Run `npm test` before marking backend work complete.
+- Do not skip or delete failing tests to pass CI.

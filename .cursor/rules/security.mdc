@@ -1,0 +1,12 @@
+---
+description: API security baseline
+alwaysApply: true
+---
+
+# Security Rules
+
+- Validate and sanitize external input in validators before services run.
+- Never use `eval` or dynamic `Function` on request data.
+- Do not construct shell commands from user-controlled strings.
+- Block path traversal in any ID or filename used for storage paths.
+- No hardcoded API keys or tokens; use `.env` locally (never commit `.env`).

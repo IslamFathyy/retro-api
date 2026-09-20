@@ -1,0 +1,13 @@
+---
+description: File storage and data directory boundaries
+globs: src/services/**,src/config/paths.js,data/**
+alwaysApply: false
+---
+
+# Storage Rules
+
+- All retrospective files live under `data/retrospectives/{retroId}/`.
+- Use `file-storage.service.js` — no ad-hoc `fs` path construction from user input.
+- Validate retro/feedback/action IDs before building paths (no path traversal).
+- Prefer atomic write patterns already used in the storage service.
+- No database; no cloud storage in core app code (Drive is MCP-only from parent repo).

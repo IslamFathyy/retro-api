@@ -1,0 +1,14 @@
+---
+description: API layering — routes, controllers, services, storage
+globs: src/**/*.js
+alwaysApply: false
+---
+
+# API Architecture
+
+- **Routes** — HTTP wiring and status codes only; delegate to controllers.
+- **Controllers** — request/response mapping; call services; no file I/O.
+- **Services** — business logic and orchestration.
+- **Storage** — `file-storage.service.js` only for `data/` reads/writes.
+- No circular imports between layers.
+- New endpoints: route + controller + service + validator + test.
