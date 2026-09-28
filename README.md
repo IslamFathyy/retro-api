@@ -28,7 +28,6 @@ Health: `http://localhost:3001/api/health`
 | `.github/` | GitHub Actions and repository automation |
 | `config/` | Runtime configuration (JSON/YAML) |
 | `data/` | Local data / file storage |
-| `docs/` | Project documentation |
 | `scripts/` | Maintenance and utility scripts |
 | `src/` | Application source code |
 | `tests/` | Automated tests |
@@ -60,7 +59,6 @@ Health: `http://localhost:3001/api/health`
       - `data/retrospectives/RETRO-2026-004/feedback/`
   - `data/teams.json`
   - `data/theme-dictionary.json`
-- `docs/` — Project documentation
 - `package-lock.json`
 - `package.json`
 - `README.md.backup`
