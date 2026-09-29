@@ -14,8 +14,8 @@ routes → controllers → services → file-storage
 
 ## Before editing
 
-1. Read parent [`../AGENTS.md`](../AGENTS.md) for multi-repo routing.
-2. Apply root rules: [`../.cursor/rules/privacy.mdc`](../.cursor/rules/privacy.mdc), [`development.mdc`](../.cursor/rules/development.mdc).
+1. Read parent [`../../AGENTS.md`](../../AGENTS.md) for multi-repo routing.
+2. Apply root rules: [`../../.cursor/rules/privacy.mdc`](../../.cursor/rules/privacy.mdc), [`../../.cursor/rules/development.mdc`](../../.cursor/rules/development.mdc).
 3. Apply this repo’s rules in [`.cursor/rules/`](.cursor/rules/).
 
 ## Data boundaries

@@ -20,7 +20,7 @@ function resolveConfigPath() {
     return path.resolve(process.env.ACTION_TEAMS_CONFIG);
   }
   const candidates = [
-    path.join(projectRoot, '../config/action-teams.json'),
+    path.join(projectRoot, '../../config/action-teams.json'),
     path.join(projectRoot, 'config/action-teams.json'),
   ];
   for (const candidate of candidates) {

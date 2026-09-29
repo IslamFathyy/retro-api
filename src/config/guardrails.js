@@ -25,7 +25,7 @@ function resolveConfigPath() {
     return path.resolve(process.env.GUARDRAILS_CONFIG);
   }
   const candidates = [
-    path.join(projectRoot, '../config/guardrails.json'),
+    path.join(projectRoot, '../../config/guardrails.json'),
     path.join(projectRoot, 'config/guardrails.json'),
   ];
   for (const candidate of candidates) {

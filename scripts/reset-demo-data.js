@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { clearAllRetrospectives } from './lib/clear-retrospectives.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ORCHESTRATION_ROOT = path.resolve(__dirname, '..', '..');
+const ORCHESTRATION_ROOT = path.resolve(__dirname, '..', '..', '..');
 const REMINDER_SNAPSHOT = path.join(ORCHESTRATION_ROOT, 'docs', 'reminders', 'latest-reminder.json');
 
 async function clearReminderSnapshot() {

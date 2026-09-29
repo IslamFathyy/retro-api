@@ -22,7 +22,7 @@ import { formatOwnerTeamLabels } from '../src/config/action-teams.js';
 import { fileExists } from '../src/utils/json.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ORCHESTRATION_ROOT = path.resolve(__dirname, '..', '..');
+const ORCHESTRATION_ROOT = path.resolve(__dirname, '..', '..', '..');
 const OUTPUT_PATH = path.join(ORCHESTRATION_ROOT, 'docs', 'reminders', 'latest-reminder.json');
 const EMAIL_PAYLOAD_PATH = path.join(
   ORCHESTRATION_ROOT,
