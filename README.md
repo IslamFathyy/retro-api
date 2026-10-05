@@ -43,7 +43,7 @@ Health: `http://localhost:3001/api/health`
 - `.github/` — GitHub Actions and repository automation
   - `.github/workflows/`
     - `.github/workflows/test.yml`
-- `AGENTS.md`
+- `AGENTS.md` lives in the parent **retro-lab** repo — see [`../../AGENTS.md`](../../AGENTS.md) (**Child repositories → retro-api**).
 - `config/` — Runtime configuration (JSON/YAML)
   - `config/action-teams.json`
   - `config/guardrails.json`
