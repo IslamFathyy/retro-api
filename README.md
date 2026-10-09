@@ -200,7 +200,7 @@ Cursor rules and workflow assets detected in this repo:
 
 If this repo is part of a monorepo, the root `.cursor/` folder may hold workflow commands (`/analyze-retro`, `/generate-report`, etc.), skills, and sub-agents. Check the parent `AGENTS.md` and `docs/cursor-test-workflow.md`.
 
-Agent boundaries: [`AGENTS.md`](AGENTS.md).
+Agent boundaries: parent [`AGENTS.md`](../../AGENTS.md) (retro-api section).
 
 ## Environment
 
