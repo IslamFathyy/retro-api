@@ -9,7 +9,7 @@ alwaysApply: false
 ## Do
 
 - Wire HTTP in routes and delegate to controllers; map requests in controllers and call services only.
-- Keep business logic in services; read and write `data/` only through `file-storage.service.js`.
+- Keep business logic in services to be controlled from one place; read and write `data/` only through `file-storage.service.js`.
 - Add route, controller, service, validator, and tests for new endpoints.
 
 ## Do not
