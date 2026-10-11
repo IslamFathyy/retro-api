@@ -30,6 +30,18 @@ const EMAIL_PAYLOAD_PATH = path.join(
   'reminders',
   'latest-email-payload.json'
 );
+const LATEST_ANALYSIS_PATH = path.join(
+  ORCHESTRATION_ROOT,
+  'docs',
+  'reminders',
+  'latest-analysis.json'
+);
+const LATEST_REPORT_PATH = path.join(
+  ORCHESTRATION_ROOT,
+  'docs',
+  'reminders',
+  'latest-report.md'
+);
 const RECIPIENTS_PATH = path.join(ORCHESTRATION_ROOT, 'docs', 'reminders', 'recipients.json');
 const RECIPIENTS_EXAMPLE_PATH = path.join(
   ORCHESTRATION_ROOT,
@@ -258,9 +270,14 @@ async function main() {
   const recipients = await readRecipientsConfig();
   const snapshot = await buildSnapshot(retroId, recipients);
   const emailPayload = buildEmailPayload(snapshot);
+  const analysis = await readAnalysis(retroId);
+  const reportMd = await fs.readFile(retroPaths(retroId).report, 'utf8');
+
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
   await fs.writeFile(OUTPUT_PATH, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
   await fs.writeFile(EMAIL_PAYLOAD_PATH, `${JSON.stringify(emailPayload, null, 2)}\n`, 'utf8');
+  await fs.writeFile(LATEST_ANALYSIS_PATH, `${JSON.stringify(analysis, null, 2)}\n`, 'utf8');
+  await fs.writeFile(LATEST_REPORT_PATH, reportMd.endsWith('\n') ? reportMd : `${reportMd}\n`, 'utf8');
 
   console.log(
     JSON.stringify(
@@ -269,6 +286,8 @@ async function main() {
         retroId,
         outputPath: OUTPUT_PATH,
         emailPayloadPath: EMAIL_PAYLOAD_PATH,
+        analysisPath: LATEST_ANALYSIS_PATH,
+        reportPath: LATEST_REPORT_PATH,
         openActionCount: snapshot.openActions.length,
         recipientCount: emailPayload.to.length,
       },

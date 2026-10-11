@@ -1,12 +1,19 @@
 ---
-description: API security baseline
+description: API security and retrospective guardrails baseline
 alwaysApply: true
 ---
 
-# Security Rules
+# Security
 
-- Validate and sanitize external input in validators before services run.
-- Never use `eval` or dynamic `Function` on request data.
-- Do not construct shell commands from user-controlled strings.
-- Block path traversal in any ID or filename used for storage paths.
-- No hardcoded API keys or tokens; use `.env` locally (never commit `.env`).
+## Do
+
+- Validate and sanitize external input in `src/validators/` before services run.
+- Enforce explicit approval confirmation phrases and blame-language checks per `config/guardrails.json` (P1, P4).
+- Enforce minimum feedback to close and related guardrails (e.g. C1) in validators and services.
+
+## Do not
+
+- Use `eval` or dynamic `Function` on request data.
+- Construct shell commands from user-controlled strings.
+- Allow path traversal in IDs or filenames used for storage paths.
+- Commit API keys, tokens, or `.env` files.
